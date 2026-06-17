@@ -6,7 +6,7 @@ import os
 os.makedirs('static/qr', exist_ok=True)
 
 for i in range(1, 11):
-    url = f'http://172.20.10.9:5000/login?table={i}'
+    url = f'https://web-production-f5c0.up.railway.app/login?table={i}'
 
     qr = qrcode.QRCode(
         version          = 1,
