@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DineSync — Menu</title>
+ <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --card: #1e1e1e;
+      --gold: #c9a84c;
+      --gold-light: #e8c97a;
+      --cream: #f5f0e8;
+      --muted: #888;
+      --red: #e05c3a;
+      --green: #4caf80;
+      --border: rgba(255,255,255,0.07);
+      --border-gold: rgba(201,168,76,0.3);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── TOP NAV ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,13,13,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 1rem; }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--gold);
+    }
+
+    .logo span { color: var(--cream); }
+
+    .table-badge {
+      background: rgba(201,168,76,0.1);
+      border: 1px solid var(--border-gold);
+      color: var(--gold);
+      padding: 0.3rem 0.8rem;
+      border-radius: 100px;
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 1rem; }
+
+    .customer-name {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .customer-name span { color: var(--cream); font-weight: 500; }
+
+    .cart-btn {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 0.55rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .cart-btn:hover { background: var(--gold-light); transform: translateY(-1px); }
+
+    .cart-count {
+      background: #000;
+      color: var(--gold);
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: calc(100vh - 65px);
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 1rem;
+      position: sticky;
+      top: 65px;
+      height: calc(100vh - 65px);
+      overflow-y: auto;
+    }
+
+    .sidebar-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      padding: 0 0.5rem;
+    }
+
+    .category-btn {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 0.7rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: all 0.2s;
+      margin-bottom: 0.3rem;
+    }
+
+    .category-btn:hover { background: var(--card); color: var(--cream); }
+
+    .category-btn.active {
+      background: rgba(201,168,76,0.1);
+      color: var(--gold);
+      border: 1px solid var(--border-gold);
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1rem 0;
+    }
+
+    /* CALL WAITER BTN */
+    .waiter-btn {
+      width: 100%;
+      background: rgba(224,92,58,0.1);
+      border: 1px solid rgba(224,92,58,0.3);
+      color: var(--red);
+      padding: 0.8rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      font-weight: 600;
+    }
+
+    .waiter-btn:hover { background: rgba(224,92,58,0.2); }
+
+    /* ── MENU CONTENT ── */
+    .menu-content { padding: 2rem; overflow-y: auto; }
+
+    /* SPECIALS BANNER */
+    .specials-banner {
+      background: linear-gradient(135deg, rgba(201,168,76,0.12), rgba(201,168,76,0.04));
+      border: 1px solid var(--border-gold);
+      border-radius: 14px;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 2rem;
+      display: none;
+    }
+
+    .specials-banner.show { display: block; }
+
+    .specials-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--gold);
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .specials-grid {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .special-pill {
+      background: rgba(201,168,76,0.1);
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .special-pill:hover { background: rgba(201,168,76,0.2); }
+    .special-pill .pill-price { color: var(--gold); font-weight: 600; }
+
+    /* SECTION HEADER */
+    .section-header {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* DISH GRID */
+    .dish-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .dish-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .dish-card:hover { border-color: var(--border-gold); transform: translateY(-3px); }
+
+    .dish-card.unavailable { opacity: 0.5; pointer-events: none; }
+
+    .special-tag {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: var(--gold);
+      color: #000;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .unavail-tag {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(224,92,58,0.15);
+      border: 1px solid rgba(224,92,58,0.3);
+      color: var(--red);
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+    }
+
+    .dish-body { padding: 1.2rem; }
+
+    .dish-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .dish-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .dish-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dish-price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .dish-wait {
+      font-size: 0.72rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .wait-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:0.4; transform:scale(1.4); }
+    }
+
+    .dish-footer {
+      padding: 0.8rem 1.2rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .qty-control {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .qty-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--cream);
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .qty-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    .qty-num { font-size: 0.9rem; font-weight: 600; min-width: 16px; text-align: center; }
+
+    .add-btn {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+
+    .add-btn:hover { background: var(--gold-light); }
+    .add-btn.added { background: var(--green); color: #fff; }
+
+    /* ── CART SIDEBAR ── */
+    .cart-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 200;
+      display: none;
+      backdrop-filter: blur(4px);
+    }
+
+    .cart-overlay.open { display: block; }
+
+    .cart-panel {
+      position: fixed;
+      top: 0; right: -420px;
+      width: 420px;
+      height: 100vh;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      z-index: 201;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .cart-panel.open { right: 0; }
+
+    .cart-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cart-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .cart-close {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--cream);
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cart-items { flex: 1; overflow-y: auto; padding: 1rem 1.5rem; }
+
+    .cart-empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    .cart-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.9rem 0;
+      border-bottom: 1px solid var(--border);
+      gap: 1rem;
+    }
+
+    .cart-item-info { flex: 1; }
+    .cart-item-name { font-size: 0.88rem; font-weight: 500; margin-bottom: 0.2rem; }
+    .cart-item-price { font-size: 0.78rem; color: var(--gold); }
+
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .cart-qty-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--cream);
+      width: 24px; height: 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cart-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .cart-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .cart-total-label { font-size: 0.85rem; color: var(--muted); }
+    .cart-total-amount { font-size: 1.3rem; font-weight: 700; color: var(--gold); }
+
+    .place-order-btn {
+      width: 100%;
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 1rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.3s;
+    }
+
+    .place-order-btn:hover { background: var(--gold-light); transform: translateY(-2px); }
+    .place-order-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── ORDER STATUS ── */
+    .status-banner {
+      position: fixed;
+      bottom: 80px; right: 2rem;
+      background: var(--card);
+      border: 1px solid var(--border-gold);
+      border-radius: 14px;
+      padding: 1rem 1.5rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 150;
+      min-width: 280px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .status-banner.show { display: flex; }
+
+    .status-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    .status-steps {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .status-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+      flex: 1;
+      text-align: center;
+    }
+
+    .status-step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+    }
+
+    .status-step.done .status-step-dot { background: var(--green); border-color: var(--green); }
+    .status-step.active .status-step-dot { background: var(--gold); border-color: var(--gold); animation: pulse 1.5s infinite; }
+
+    .status-line { flex: 1; height: 2px; background: var(--border); border-radius: 2px; }
+    .status-line.done { background: var(--green); }
+
+    /* ── AI CHATBOT ── */
+    .chat-fab {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      background: var(--gold);
+      color: #000;
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(201,168,76,0.35);
+      transition: all 0.3s;
+      z-index: 150;
+    }
+
+    .chat-fab:hover { transform: scale(1.1); background: var(--gold-light); }
+
+    .chat-window {
+      position: fixed;
+      bottom: 100px; right: 2rem;
+      width: 340px;
+      background: var(--surface);
+      border: 1px solid var(--border-gold);
+      border-radius: 16px;
+      display: none;
+      flex-direction: column;
+      z-index: 150;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+
+    .chat-window.open { display: flex; }
+
+    .chat-head {
+      background: var(--card);
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .chat-avatar {
+      width: 36px; height: 36px;
+      background: var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .chat-head-info { flex: 1; }
+    .chat-head-name { font-size: 0.88rem; font-weight: 600; }
+    .chat-head-status { font-size: 0.72rem; color: var(--green); display: flex; align-items: center; gap: 0.3rem; }
+    .chat-head-status::before { content:''; width:6px; height:6px; background:var(--green); border-radius:50%; }
+
+    .chat-close-btn {
+      background: none; border: none;
+      color: var(--muted); cursor: pointer; font-size: 1.1rem;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      max-height: 300px;
+      min-height: 200px;
+    }
+
+    .msg {
+      max-width: 85%;
+      padding: 0.6rem 0.9rem;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .msg.bot {
+      background: var(--card);
+      border: 1px solid var(--border);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg.user {
+      background: var(--gold);
+      color: #000;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+      font-weight: 500;
+    }
+
+    .msg.typing { color: var(--muted); font-style: italic; }
+
+    .chat-input-row {
+      padding: 0.8rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.9rem;
+      color: var(--cream);
+      font-size: 0.82rem;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus { border-color: var(--gold); }
+    .chat-input::placeholder { color: #555; }
+
+    .chat-send-btn {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .chat-send-btn:hover { background: var(--gold-light); }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      top: 80px; right: 2rem;
+      background: var(--card);
+      border: 1px solid var(--green);
+      color: var(--green);
+      padding: 0.8rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 300;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .toast.show { display: flex; }
+
+    @media (max-width: 768px) {
+      .main { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .cart-panel { width: 100%; right: -100%; }
+      .chat-window { width: calc(100vw - 2rem); right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">Dine<span>Sync</span></div>
+    <div class="table-badge">🪑 Table {{ table_number }}</div>
+  </div>
+  <div class="topbar-right">
+    <div class="customer-name">Welcome, <span>{{ customer_name }}</span></div>
+    <button class="cart-btn" onclick="toggleCart()">
+      🛒 Cart <div class="cart-count" id="cart-count">0</div>
+    </button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Categories</div>
+    <button class="category-btn active" onclick="filterCategory('all', this)">🍽️ All Items</button>
+    {% for category in categories %}
+    <button class="category-btn" onclick="filterCategory('{{ category }}', this)">
+      {% if category == 'Starters' %}🥗
+      {% elif category == 'Main Course' %}🍛
+      {% elif category == 'Drinks' %}🥤
+      {% elif category == 'Desserts' %}🍮
+      {% endif %}
+      {{ category }}
+    </button>
+    {% endfor %}
+
+    <div class="sidebar-divider"></div>
+
+    <button class="waiter-btn" onclick="callWaiter()">
+      🔔 Call Waiter
+    </button>
+  </div>
+
+  <!-- MENU CONTENT -->
+  <div class="menu-content">
+
+    <!-- TODAY'S SPECIALS BANNER -->
+    {% if specials %}
+    <div class="specials-banner show">
+      <div class="specials-title">⭐ Today's Specials</div>
+      <div class="specials-grid">
+        {% for dish in specials %}
+        <div class="special-pill" onclick="addToCart('{{ dish.id }}', '{{ dish.name }}', '{{ dish.price }}')">
+          {{ dish.name }} — <span class="pill-price">₹{{ dish.price }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- DISHES BY CATEGORY -->
+    {% set categories_list = ['Starters', 'Main Course', 'Drinks', 'Desserts'] %}
+    {% for cat in categories_list %}
+    {% set cat_dishes = dishes | selectattr('category', 'equalto', cat) | list %}
+    {% if cat_dishes %}
+    <div class="category-section" data-category="{{ cat }}">
+      <div class="section-header">
+        {% if cat == 'Starters' %}🥗
+        {% elif cat == 'Main Course' %}🍛
+        {% elif cat == 'Drinks' %}🥤
+        {% elif cat == 'Desserts' %}🍮
+        {% endif %}
+        {{ cat }}
+      </div>
+      <div class="dish-grid">
+        {% for dish in cat_dishes %}
+        <div class="dish-card {% if not dish.is_available %}unavailable{% endif %}" id="dish-{{ dish.id }}">
+          {% if dish.is_todays_special %}<div class="special-tag">⭐ Special</div>{% endif %}
+          {% if not dish.is_available %}<div class="unavail-tag">Unavailable</div>{% endif %}
+          <div class="dish-body">
+            <div class="dish-name">{{ dish.name }}</div>
+            <div class="dish-desc">{{ dish.description }}</div>
+            <div class="dish-meta">
+              <div class="dish-price">₹{{ dish.price }}</div>
+              {% if dish.is_available %}
+              <div class="dish-wait"><div class="wait-dot"></div> ~{{ dish.prep_time }} min</div>
+              {% endif %}
+            </div>
+          </div>
+          {% if dish.is_available %}
+          <div class="dish-footer">
+            <div class="qty-control">
+              <button class="qty-btn" onclick="changeQty('{{ dish.id }}', -1)">−</button>
+              <span class="qty-num" id="qty-{{ dish.id }}">1</span>
+              <button class="qty-btn" onclick="changeQty('{{ dish.id }}', 1)">+</button>
+            </div>
+            <button class="add-btn" id="add-{{ dish.id }}"
+              onclick="addToCart('{{ dish.id }}', '{{ dish.name }}', '{{ dish.price }}')">
+              Add to Cart
+            </button>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+  </div>
+</div>
+
+<!-- CART OVERLAY -->
+<div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
+
+<!-- CART PANEL -->
+<div class="cart-panel" id="cart-panel">
+  <div class="cart-header">
+    <div class="cart-title">Your Order</div>
+    <button class="cart-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cart-items">
+    <div class="cart-empty">
+      <div class="cart-empty-icon">🛒</div>
+      <div>Your cart is empty</div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:0.5rem">Add dishes from the menu</div>
+    </div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total">
+      <div class="cart-total-label">Total Amount</div>
+      <div class="cart-total-amount">₹<span id="cart-total">0</span></div>
+    </div>
+    <button class="place-order-btn" id="place-order-btn" onclick="placeOrder()" disabled>
+      Place Order →
+    </button>
+  </div>
+</div>
+
+<!-- ORDER STATUS BANNER -->
+<div class="status-banner" id="status-banner">
+  <div class="status-label">Order Status — #<span id="status-order-id">--</span></div>
+  <div class="status-steps">
+    <div class="status-step active" id="step-placed">
+      <div class="status-step-dot">📋</div>
+      <div>Placed</div>
+    </div>
+    <div class="status-line" id="line-1"></div>
+    <div class="status-step" id="step-preparing">
+      <div class="status-step-dot">👨‍🍳</div>
+      <div>Preparing</div>
+    </div>
+    <div class="status-line" id="line-2"></div>
+    <div class="status-step" id="step-ready">
+      <div class="status-step-dot">✅</div>
+      <div>Ready</div>
+    </div>
+  </div>
+</div>
+
+<!-- AI CHATBOT FAB -->
+<button class="chat-fab" onclick="toggleChat()" title="Ask DineBot">🤖</button>
+
+<!-- CHAT WINDOW -->
+<div class="chat-window" id="chat-window">
+  <div class="chat-head">
+    <div class="chat-avatar">🤖</div>
+    <div class="chat-head-info">
+      <div class="chat-head-name">DineBot</div>
+      <div class="chat-head-status">Online — Ask me anything!</div>
+    </div>
+    <button class="chat-close-btn" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg bot">
+      👋 Hi {{ customer_name }}! I'm DineBot. Ask me what's good today, want something spicy, vegetarian, or a quick bite — I'll help you pick!
+    </div>
+  </div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chat-input" placeholder="Ask me anything..." onkeypress="handleChatKey(event)"/>
+    <button class="chat-send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✅ <span id="toast-msg">Added to cart!</span></div>
+
+<script>
+  // ── CART STATE ──
+  let cart = {};
+  let quantities = {};
+  let chatHistory = [];
+  let currentOrderId = null;
+  let statusInterval = null;
+
+  // ── CATEGORY FILTER ──
+  function filterCategory(cat, btn) {
+    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.category-section').forEach(sec => {
+      sec.style.display = (cat === 'all' || sec.dataset.category === cat) ? 'block' : 'none';
+    });
+  }
+
+  // ── QUANTITY CONTROL ──
+  function changeQty(dishId, delta) {
+    const el  = document.getElementById('qty-' + dishId);
+    let qty   = parseInt(el.textContent) + delta;
+    if (qty < 1) qty = 1;
+    if (qty > 10) qty = 10;
+    el.textContent = qty;
+    quantities[dishId] = qty;
+  }
+
+  // ── ADD TO CART ──
+  function addToCart(dishId, dishName, dishPrice) {
+    const qty = quantities[dishId] || 1;
+    if (cart[dishId]) {
+      cart[dishId].quantity += qty;
+    } else {
+      cart[dishId] = { id: dishId, name: dishName, price: dishPrice, quantity: qty };
+    }
+    updateCartUI();
+    showToast('Added ' + dishName + ' to cart!');
+    const btn = document.getElementById('add-' + dishId);
+    if (btn) {
+      btn.textContent = '✓ Added';
+      btn.classList.add('added');
+      setTimeout(() => { btn.textContent = 'Add to Cart'; btn.classList.remove('added'); }, 1500);
+    }
+  }
+
+  // ── UPDATE CART UI ──
+  function updateCartUI() {
+    const items    = Object.values(cart);
+    const total    = items.reduce((s, i) => s + i.price * i.quantity, 0);
+    const count    = items.reduce((s, i) => s + i.quantity, 0);
+
+    document.getElementById('cart-count').textContent = count;
+    document.getElementById('cart-total').textContent = total.toFixed(2);
+
+    const placeBtn = document.getElementById('place-order-btn');
+    placeBtn.disabled = items.length === 0;
+
+    const cartItemsEl = document.getElementById('cart-items');
+    if (items.length === 0) {
+      cartItemsEl.innerHTML = `
+        <div class="cart-empty">
+          <div class="cart-empty-icon">🛒</div>
+          <div>Your cart is empty</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:0.5rem">Add dishes from the menu</div>
+        </div>`;
+      return;
+    }
+
+    cartItemsEl.innerHTML = items.map(item => `
+      <div class="cart-item">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-price">₹${item.price} × ${item.quantity} = ₹${(item.price * item.quantity).toFixed(2)}</div>
+        </div>
+        <div class="cart-item-qty">
+          <button class="cart-qty-btn" onclick="cartChangeQty(${item.id}, -1)">−</button>
+          <span>${item.quantity}</span>
+          <button class="cart-qty-btn" onclick="cartChangeQty(${item.id}, 1)">+</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function cartChangeQty(dishId, delta) {
+    if (!cart[dishId]) return;
+    cart[dishId].quantity += delta;
+    if (cart[dishId].quantity <= 0) delete cart[dishId];
+    updateCartUI();
+  }
+
+  // ── TOGGLE CART ──
+  function toggleCart() {
+    document.getElementById('cart-panel').classList.toggle('open');
+    document.getElementById('cart-overlay').classList.toggle('open');
+  }
+
+  // ── PLACE ORDER ──
+  async function placeOrder() {
+    const items = Object.values(cart).map(i => ({ dish_id: i.id, quantity: i.quantity }));
+    if (items.length === 0) return;
+
+    const btn = document.getElementById('place-order-btn');
+    btn.textContent = 'Placing order...';
+    btn.disabled = true;
+
+    try {
+      const res  = await fetch('/place-order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ items })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        currentOrderId = data.order_id;
+        cart = {};
+        quantities = {};
+        updateCartUI();
+        toggleCart();
+        showOrderStatus(currentOrderId);
+        showToast('Order placed! We are preparing it now 🍳');
+      }
+    } catch (err) {
+      showToast('Something went wrong. Please try again.');
+    }
+
+    btn.textContent = 'Place Order →';
+    btn.disabled = false;
+  }
+
+  // ── ORDER STATUS TRACKING ──
+  function showOrderStatus(orderId) {
+    document.getElementById('status-order-id').textContent = orderId;
+    document.getElementById('status-banner').classList.add('show');
+    if (statusInterval) clearInterval(statusInterval);
+    statusInterval = setInterval(() => checkOrderStatus(orderId), 5000);
+  }
+
+  async function checkOrderStatus(orderId) {
+    try {
+      const res  = await fetch('/order-status/' + orderId);
+      const data = await res.json();
+      updateStatusUI(data.status);
+      if (data.status === 'served') {
+        clearInterval(statusInterval);
+        setTimeout(() => document.getElementById('status-banner').classList.remove('show'), 5000);
+      }
+    } catch (e) {}
+  }
+
+  function updateStatusUI(status) {
+    const steps = { placed: 0, preparing: 1, ready: 2, served: 3 };
+    const idx   = steps[status] || 0;
+    ['placed', 'preparing', 'ready'].forEach((s, i) => {
+      const el   = document.getElementById('step-' + s);
+      const line = document.getElementById('line-' + (i + 1));
+      el.className = 'status-step ' + (i < idx ? 'done' : i === idx ? 'active' : '');
+      if (line) line.className = 'status-line ' + (i < idx ? 'done' : '');
+    });
+  }
+
+  // ── CALL WAITER ──
+  async function callWaiter() {
+    try {
+        const res  = await fetch('/call-waiter', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        showToast('🔔 ' + data.message);
+    } catch (e) {
+        showToast('🔔 Waiter has been notified!');
+    }
+}
+
+  // ── TOAST ──
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // ── CHATBOT ──
+  function toggleChat() {
+    document.getElementById('chat-window').classList.toggle('open');
+  }
+
+  function handleChatKey(e) {
+    if (e.key === 'Enter') sendMessage();
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const msg   = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+
+    appendMsg(msg, 'user');
+    chatHistory.push({ role: 'user', content: msg });
+
+    appendMsg('Thinking...', 'bot typing');
+
+    try {
+      const res  = await fetch('/chat', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ message: msg, history: chatHistory })
+      });
+      const data = await res.json();
+
+      removeTyping();
+      appendMsg(data.reply, 'bot');
+      chatHistory.push({ role: 'assistant', content: data.reply });
+    } catch (e) {
+      removeTyping();
+      appendMsg('Sorry, I am having trouble. Please ask a waiter!', 'bot');
+    }
+  }
+
+  function appendMsg(text, cls) {
+    const el  = document.createElement('div');
+    el.className = 'msg ' + cls;
+    el.textContent = text;
+    const box = document.getElementById('chat-messages');
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function removeTyping() {
+    const typing = document.querySelector('.msg.typing');
+    if (typing) typing.remove();
+  }
+</script>
+
+</body>
+</html>

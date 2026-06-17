@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DineSync — Kitchen Queue</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --card: #1e1e1e;
+      --gold: #c9a84c; --gold-light: #e8c97a; --cream: #f5f0e8;
+      --muted: #888; --red: #e05c3a; --green: #4caf80; --blue: #4a9eff;
+      --border: rgba(255,255,255,0.07); --border-gold: rgba(201,168,76,0.3);
+    }
+    body { background: var(--bg); color: var(--cream); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+    /* TOPBAR */
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 100;
+    }
+    .logo { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 900; color: var(--gold); }
+    .logo span { color: var(--cream); }
+    .role-badge { background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.3); color: var(--blue); padding: 0.3rem 0.8rem; border-radius: 100px; font-size: 0.78rem; }
+    .live-badge { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--green); }
+    .live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.4;transform:scale(1.4);} }
+    .logout-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.82rem; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+    /* REFRESH BAR */
+    .refresh-bar { padding: 0.6rem 2rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; color: var(--muted); }
+    .refresh-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+    .refresh-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* STATS */
+    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.2rem; display: flex; align-items: center; gap: 1rem; }
+    .stat-icon { font-size: 1.8rem; }
+    .stat-num { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 0.75rem; color: var(--muted); }
+
+    /* QUEUE TABS */
+    .queue-tabs { display: flex; gap: 0.5rem; padding: 1.2rem 2rem 0; }
+    .queue-tab { padding: 0.6rem 1.2rem; border-radius: 8px 8px 0 0; border: 1px solid var(--border); border-bottom: none; background: var(--surface); color: var(--muted); font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; }
+    .queue-tab.active { background: var(--card); color: var(--cream); border-color: var(--border-gold); }
+    .tab-count { background: var(--gold); color: #000; width: 18px; height: 18px; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+    /* QUEUE CONTENT */
+    .queue-content { padding: 0 2rem 2rem; background: var(--card); border: 1px solid var(--border-gold); margin: 0 2rem 2rem; border-radius: 0 12px 12px 12px; min-height: 400px; }
+
+    /* ORDER CARDS */
+    .orders-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(320px,1fr)); gap: 1rem; padding: 1.5rem 0; }
+    .order-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: all 0.3s; position: relative; }
+    .order-card:hover { border-color: var(--border-gold); transform: translateY(-2px); }
+    .order-card.status-placed   { border-left: 3px solid var(--gold); }
+    .order-card.status-preparing{ border-left: 3px solid var(--blue); }
+    .order-card.status-ready    { border-left: 3px solid var(--green); }
+    .fcfs-badge { position: absolute; top: 12px; right: 12px; background: rgba(201,168,76,0.1); border: 1px solid var(--border-gold); color: var(--gold); font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 100px; }
+    .order-header { padding: 1rem 1.2rem 0.8rem; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 0.8rem; }
+    .order-icon { font-size: 1.6rem; }
+    .order-meta { flex: 1; }
+    .order-id { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .order-info { font-size: 0.78rem; color: var(--muted); display: flex; gap: 0.8rem; flex-wrap: wrap; }
+    .status-badge { padding: 0.25rem 0.7rem; border-radius: 100px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .status-placed    { background: rgba(201,168,76,0.1); color: var(--gold); border: 1px solid var(--border-gold); }
+    .status-preparing { background: rgba(74,158,255,0.1); color: var(--blue); border: 1px solid rgba(74,158,255,0.3); }
+    .status-ready     { background: rgba(76,175,128,0.1); color: var(--green); border: 1px solid rgba(76,175,128,0.3); }
+    .order-items { padding: 0.8rem 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .order-item-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+    .order-item-qty { background: var(--card); color: var(--gold); padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .order-timer { padding: 0.5rem 1.2rem; font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+    .order-actions { padding: 0.8rem 1.2rem; border-top: 1px solid var(--border); display: flex; gap: 0.6rem; }
+    .action-btn { flex: 1; padding: 0.6rem; border-radius: 8px; border: none; font-size: 0.82rem; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+    .btn-prepare { background: rgba(74,158,255,0.15); color: var(--blue); border: 1px solid rgba(74,158,255,0.3); }
+    .btn-prepare:hover { background: rgba(74,158,255,0.25); }
+    .btn-ready { background: rgba(76,175,128,0.15); color: var(--green); border: 1px solid rgba(76,175,128,0.3); }
+    .btn-ready:hover { background: rgba(76,175,128,0.25); }
+    .btn-served { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid var(--border-gold); }
+    .btn-served:hover { background: rgba(201,168,76,0.25); }
+
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+    .empty-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--cream); margin-bottom: 0.5rem; }
+
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
+
+    /* TOAST */
+    .toast { position: fixed; top: 80px; right: 2rem; background: var(--card); border: 1px solid var(--green); color: var(--green); padding: 0.8rem 1.2rem; border-radius: 10px; font-size: 0.85rem; font-weight: 500; z-index: 300; display: none; align-items: center; gap: 0.5rem; }
+    .toast.show { display: flex; }
+
+    @media (max-width:768px) {
+      .stats-row { grid-template-columns: repeat(2,1fr); padding: 1rem; }
+      .queue-content { margin: 0 1rem 2rem; }
+      .orders-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <div class="logo">Dine<span>Sync</span></div>
+    <div class="role-badge">👨‍🍳 Kitchen Staff</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <div class="live-badge"><div class="live-dot"></div> Live Queue</div>
+    <a href="/logout" class="logout-btn">Logout</a>
+  </div>
+</div>
+
+<!-- REFRESH BAR -->
+<div class="refresh-bar">
+  <span>🔄 Auto-refreshes every 15 seconds — Orders sorted by First Come First Served</span>
+  <button class="refresh-btn" onclick="location.reload()">Refresh Now</button>
+</div>
+
+<!-- STATS ROW -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon">📋</div>
+    <div class="stat-info">
+      <div class="stat-num" style="color:var(--gold)">{{ orders|selectattr('status','equalto','placed')|list|length }}</div>
+      <div class="stat-label">New Orders</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">👨‍🍳</div>
+    <div class="stat-info">
+      <div class="stat-num" style="color:var(--blue)">{{ orders|selectattr('status','equalto','preparing')|list|length }}</div>
+      <div class="stat-label">Preparing</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">✅</div>
+    <div class="stat-info">
+      <div class="stat-num" style="color:var(--green)">{{ orders|selectattr('status','equalto','ready')|list|length }}</div>
+      <div class="stat-label">Ready</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🍽️</div>
+    <div class="stat-info">
+      <div class="stat-num" style="color:var(--cream)">{{ orders|length }}</div>
+      <div class="stat-label">Total Active</div>
+    </div>
+  </div>
+</div>
+
+<!-- WAITER CALLS CONTAINER -->
+<div id="waiter-calls-container">
+  {% if waiter_calls %}
+  <div style="margin:1rem 2rem;background:rgba(224,92,58,0.1);border:1px solid rgba(224,92,58,0.4);border-radius:12px;padding:1rem 1.5rem;">
+    <div style="color:#e05c3a;font-weight:700;margin-bottom:0.8rem;font-size:0.95rem;">
+      🔔 Waiter Calls — {{ waiter_calls|length }} pending
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.8rem;">
+      {% for call in waiter_calls %}
+      <div id="call-{{ call.id }}" style="background:#1e1e1e;border:1px solid rgba(224,92,58,0.3);border-radius:10px;padding:0.7rem 1rem;display:flex;align-items:center;gap:1rem;">
+        <div>
+          <div style="font-size:0.88rem;font-weight:600;">🪑 Table {{ call.table_number }}</div>
+          <div style="font-size:0.75rem;color:#888;">{{ call.customer_name }} — {{ call.called_at.strftime('%H:%M:%S') }}</div>
+        </div>
+        <button onclick="resolveWaiter('{{ call.id }}')"
+          style="background:rgba(76,175,128,0.15);border:1px solid rgba(76,175,128,0.3);color:#4caf80;padding:0.3rem 0.8rem;border-radius:6px;font-size:0.78rem;cursor:pointer;font-family:inherit;">
+          ✅ Done
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- QUEUE TABS -->
+<div class="queue-tabs">
+  <button class="queue-tab active" onclick="switchTab('all',this)">
+    All Orders <div class="tab-count">{{ orders|length }}</div>
+  </button>
+  <button class="queue-tab" onclick="switchTab('placed',this)">
+    📋 New <div class="tab-count">{{ orders|selectattr('status','equalto','placed')|list|length }}</div>
+  </button>
+  <button class="queue-tab" onclick="switchTab('preparing',this)">
+    👨‍🍳 Preparing <div class="tab-count">{{ orders|selectattr('status','equalto','preparing')|list|length }}</div>
+  </button>
+  <button class="queue-tab" onclick="switchTab('ready',this)">
+    ✅ Ready <div class="tab-count">{{ orders|selectattr('status','equalto','ready')|list|length }}</div>
+  </button>
+</div>
+
+<!-- QUEUE CONTENT -->
+<div class="queue-content">
+
+  <!-- ALL ORDERS -->
+  <div class="tab-section active" id="tab-all">
+    {% if orders %}
+    <div class="orders-grid">
+      {% for order in orders %}
+      <div class="order-card status-{{ order.status }}">
+        <div class="fcfs-badge">#{{ loop.index }} in queue</div>
+        <div class="order-header">
+          <div class="order-icon">
+            {% if order.status=='placed' %}📋{% elif order.status=='preparing' %}👨‍🍳{% else %}✅{% endif %}
+          </div>
+          <div class="order-meta">
+            <div class="order-id">Order #{{ order.id }}</div>
+            <div class="order-info">
+              <span>🪑 Table {{ order.table_id }}</span>
+              <span>👤 {{ order.customer_name }}</span>
+              <span>🕐 {{ order.created_at.strftime('%H:%M') }}</span>
+            </div>
+          </div>
+          <div class="status-badge status-{{ order.status }}">{{ order.status }}</div>
+        </div>
+        <div class="order-items">
+          {% for item in order.items %}
+          <div class="order-item-row">
+            <div>{{ item.dish.name }}</div>
+            <div class="order-item-qty">× {{ item.quantity }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="order-timer">⏱️ Ordered at {{ order.created_at.strftime('%H:%M:%S') }}</div>
+        <div class="order-actions">
+          {% if order.status=='placed' %}
+          <button class="action-btn btn-prepare" onclick="updateStatus('{{ order.id }}','preparing')">👨‍🍳 Start Preparing</button>
+          {% elif order.status=='preparing' %}
+          <button class="action-btn btn-ready" onclick="updateStatus('{{ order.id }}','ready')">✅ Mark as Ready</button>
+          {% elif order.status=='ready' %}
+          <button class="action-btn btn-served" onclick="updateStatus('{{ order.id }}','served')">🍽️ Mark as Served</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🎉</div>
+      <div class="empty-title">All caught up!</div>
+      <div>No active orders right now.</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- PLACED -->
+  <div class="tab-section" id="tab-placed">
+    {% set placed=orders|selectattr('status','equalto','placed')|list %}
+    {% if placed %}
+    <div class="orders-grid">
+      {% for order in placed %}
+      <div class="order-card status-placed">
+        <div class="fcfs-badge">#{{ loop.index }} in queue</div>
+        <div class="order-header">
+          <div class="order-icon">📋</div>
+          <div class="order-meta">
+            <div class="order-id">Order #{{ order.id }}</div>
+            <div class="order-info"><span>🪑 Table {{ order.table_id }}</span><span>👤 {{ order.customer_name }}</span><span>🕐 {{ order.created_at.strftime('%H:%M') }}</span></div>
+          </div>
+          <div class="status-badge status-placed">New</div>
+        </div>
+        <div class="order-items">
+          {% for item in order.items %}
+          <div class="order-item-row"><div>{{ item.dish.name }}</div><div class="order-item-qty">× {{ item.quantity }}</div></div>
+          {% endfor %}
+        </div>
+        <div class="order-actions">
+          <button class="action-btn btn-prepare" onclick="updateStatus('{{ order.id }}','preparing')">👨‍🍳 Start Preparing</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No new orders</div></div>
+    {% endif %}
+  </div>
+
+  <!-- PREPARING -->
+  <div class="tab-section" id="tab-preparing">
+    {% set preparing=orders|selectattr('status','equalto','preparing')|list %}
+    {% if preparing %}
+    <div class="orders-grid">
+      {% for order in preparing %}
+      <div class="order-card status-preparing">
+        <div class="order-header">
+          <div class="order-icon">👨‍🍳</div>
+          <div class="order-meta">
+            <div class="order-id">Order #{{ order.id }}</div>
+            <div class="order-info"><span>🪑 Table {{ order.table_id }}</span><span>👤 {{ order.customer_name }}</span></div>
+          </div>
+          <div class="status-badge status-preparing">Preparing</div>
+        </div>
+        <div class="order-items">
+          {% for item in order.items %}
+          <div class="order-item-row"><div>{{ item.dish.name }}</div><div class="order-item-qty">× {{ item.quantity }}</div></div>
+          {% endfor %}
+        </div>
+        <div class="order-actions">
+          <button class="action-btn btn-ready" onclick="updateStatus('{{ order.id }}','ready')">✅ Mark as Ready</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">👨‍🍳</div><div class="empty-title">Nothing preparing</div></div>
+    {% endif %}
+  </div>
+
+  <!-- READY -->
+  <div class="tab-section" id="tab-ready">
+    {% set ready=orders|selectattr('status','equalto','ready')|list %}
+    {% if ready %}
+    <div class="orders-grid">
+      {% for order in ready %}
+      <div class="order-card status-ready">
+        <div class="order-header">
+          <div class="order-icon">✅</div>
+          <div class="order-meta">
+            <div class="order-id">Order #{{ order.id }}</div>
+            <div class="order-info"><span>🪑 Table {{ order.table_id }}</span><span>👤 {{ order.customer_name }}</span></div>
+          </div>
+          <div class="status-badge status-ready">Ready</div>
+        </div>
+        <div class="order-items">
+          {% for item in order.items %}
+          <div class="order-item-row"><div>{{ item.dish.name }}</div><div class="order-item-qty">× {{ item.quantity }}</div></div>
+          {% endfor %}
+        </div>
+        <div class="order-actions">
+          <button class="action-btn btn-served" onclick="updateStatus('{{ order.id }}','served')">🍽️ Mark as Served</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">No orders ready</div></div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✅ <span id="toast-msg">Done!</span></div>
+
+<script>
+  // TAB SWITCHING
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.queue-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  // UPDATE ORDER STATUS
+  async function updateStatus(orderId, newStatus) {
+    try {
+      const res  = await fetch('/kitchen/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Order #' + orderId + ' marked as ' + newStatus + '!');
+        setTimeout(() => location.reload(), 1000);
+      }
+    } catch(e) {
+      showToast('Something went wrong. Try again.');
+    }
+  }
+
+  // RESOLVE WAITER CALL
+  async function resolveWaiter(callId) {
+    try {
+      const res  = await fetch('/kitchen/resolve-waiter/' + callId, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        const el = document.getElementById('call-' + callId);
+        if (el) el.remove();
+        showToast('✅ Waiter call resolved!');
+      }
+    } catch(e) {
+      showToast('Something went wrong.');
+    }
+  }
+
+  // AUTO CHECK WAITER CALLS EVERY 10 SECONDS
+  setInterval(async function() {
+    try {
+      const res  = await fetch('/kitchen/waiter-calls');
+      const data = await res.json();
+      const container = document.getElementById('waiter-calls-container');
+
+      if (data.calls.length > 0) {
+        let html = `
+        <div style="margin:1rem 2rem;background:rgba(224,92,58,0.1);border:1px solid rgba(224,92,58,0.4);border-radius:12px;padding:1rem 1.5rem;">
+          <div style="color:#e05c3a;font-weight:700;margin-bottom:0.8rem;font-size:0.95rem;">
+            🔔 Waiter Calls — ${data.calls.length} pending
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.8rem;">`;
+
+        data.calls.forEach(call => {
+          html += `
+          <div id="call-${call.id}" style="background:#1e1e1e;border:1px solid rgba(224,92,58,0.3);border-radius:10px;padding:0.7rem 1rem;display:flex;align-items:center;gap:1rem;">
+            <div>
+              <div style="font-size:0.88rem;font-weight:600;">🪑 Table ${call.table_number}</div>
+              <div style="font-size:0.75rem;color:#888;">${call.customer_name} — ${call.called_at}</div>
+            </div>
+            <button onclick="resolveWaiter(${call.id})"
+              style="background:rgba(76,175,128,0.15);border:1px solid rgba(76,175,128,0.3);color:#4caf80;padding:0.3rem 0.8rem;border-radius:6px;font-size:0.78rem;cursor:pointer;font-family:inherit;">
+              ✅ Done
+            </button>
+          </div>`;
+        });
+
+        html += `</div></div>`;
+        container.innerHTML = html;
+      } else {
+        container.innerHTML = '';
+      }
+    } catch(e) {
+      console.log('Waiter check error:', e);
+    }
+  }, 10000);
+
+  // AUTO REFRESH ORDERS every 15 seconds
+  setTimeout(() => location.reload(), 15000);
+
+  // TOAST
+  function showToast(msg) {
+    document.getElementById('toast-msg').textContent = msg;
+    document.getElementById('toast').classList.add('show');
+    setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000);
+  }
+</script>
+
+</body>
+</html>

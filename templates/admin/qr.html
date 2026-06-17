@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DineSync — QR Codes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --card: #1e1e1e;
+      --gold: #c9a84c; --gold-light: #e8c97a; --cream: #f5f0e8;
+      --muted: #888; --red: #e05c3a; --green: #4caf80;
+      --border: rgba(255,255,255,0.07); --border-gold: rgba(201,168,76,0.3);
+    }
+    body { background: var(--bg); color: var(--cream); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .logo { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 900; color: var(--gold); }
+    .logo span { color: var(--cream); }
+    .back-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.82rem; text-decoration: none; transition: all 0.2s; }
+    .back-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .main { padding: 2rem; }
+    .page-title { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .page-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .info-box { background: rgba(201,168,76,0.07); border: 1px solid var(--border-gold); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 2rem; font-size: 0.85rem; color: var(--muted); line-height: 1.7; }
+    .actions-bar { display: flex; gap: 1rem; margin-bottom: 2rem; }
+    .btn-print-all { background: var(--gold); color: #000; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-size: 0.88rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+    .btn-print-all:hover { background: var(--gold-light); }
+    .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
+    .qr-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; text-align: center; transition: all 0.3s; }
+    .qr-card:hover { border-color: var(--border-gold); transform: translateY(-3px); }
+    .qr-table-num { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--gold); margin-bottom: 1rem; }
+    .qr-image-wrapper { background: white; border-radius: 10px; padding: 0.8rem; margin-bottom: 1rem; display: inline-block; }
+    .qr-image { width: 150px; height: 150px; display: block; }
+    .qr-url { font-size: 0.68rem; color: var(--muted); margin-bottom: 1rem; }
+    .qr-actions { display: flex; gap: 0.5rem; justify-content: center; }
+    .btn-download { background: rgba(201,168,76,0.1); color: var(--gold); border: 1px solid var(--border-gold); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+    .btn-download:hover { background: rgba(201,168,76,0.2); }
+    .btn-print { background: rgba(76,175,128,0.1); color: var(--green); border: 1px solid rgba(76,175,128,0.3); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+    .btn-print:hover { background: rgba(76,175,128,0.2); }
+
+    @media print {
+      .topbar, .actions-bar, .info-box, .qr-actions, .page-title, .page-desc { display: none !important; }
+      body { background: white; color: black; }
+      .qr-card { border: 1px solid #ccc; page-break-inside: avoid; background: white; }
+      .qr-grid { grid-template-columns: repeat(3,1fr); gap: 1rem; }
+      .qr-table-num { color: #000; }
+      .qr-url { display: block !important; color: #555; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <div class="logo">Dine<span>Sync</span></div>
+    <span style="color:var(--muted);font-size:0.85rem;">QR Code Manager</span>
+  </div>
+  <a href="/admin" class="back-btn">← Back to Admin</a>
+</div>
+
+<div class="main">
+  <div class="page-title">📱 Table QR Codes</div>
+  <div class="page-desc">10 unique QR codes — one per table. Print and place on each table.</div>
+
+  <div class="info-box">
+    💡 <strong style="color:var(--cream);">How to use:</strong>
+    Customer scans QR → lands on login page with table number pre-filled → enters name → starts ordering!
+    <br>Make sure you ran <code>python generate_qr.py</code> first to generate the images.
+  </div>
+
+  <div class="actions-bar">
+    <button class="btn-print-all" onclick="window.print()">🖨️ Print All QR Codes</button>
+  </div>
+
+  <div class="qr-grid">
+    {% for i in range(1, 11) %}
+    <div class="qr-card">
+      <div class="qr-table-num">🪑 Table {{ i }}</div>
+      <div class="qr-image-wrapper">
+        <img
+          class="qr-image"
+          src="{{ url_for('static', filename='qr/table_' + i|string + '.png') }}"
+          alt="QR Table {{ i }}"
+        />
+      </div>
+      <div class="qr-url">/login?table={{ i }}</div>
+      <div class="qr-actions">
+        <a href="{{ url_for('static', filename='qr/table_' + i|string + '.png') }}"
+           download="table_{{ i }}_qr.png"
+           class="btn-download">⬇️ Save</a>
+        <button class="btn-print" onclick="printSingle({{ i }})">🖨️ Print</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  function printSingle(tableNum) {
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <html>
+        <head>
+          <title>Table ${tableNum} QR</title>
+          <style>body{text-align:center;padding:2rem;font-family:sans-serif;}h2{margin-bottom:1rem;}img{width:250px;height:250px;}p{margin-top:1rem;color:#555;font-size:0.85rem;}</style>
+        </head>
+        <body>
+          <h2>DineSync — Table ${tableNum}</h2>
+          <img src="/static/qr/table_${tableNum}.png"/>
+          <p>Scan to order from Table ${tableNum}</p>
+          <p style="font-size:0.7rem;color:#999;">127.0.0.1:5000/login?table=${tableNum}</p>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  }
+</script>
+
+</body>
+</html>

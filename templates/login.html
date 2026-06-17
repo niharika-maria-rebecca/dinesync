@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DineSync — Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --card: #1e1e1e;
+      --gold: #c9a84c;
+      --gold-light: #e8c97a;
+      --cream: #f5f0e8;
+      --muted: #888;
+      --red: #e05c3a;
+      --green: #4caf80;
+      --border: rgba(255,255,255,0.08);
+      --border-gold: rgba(201,168,76,0.3);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* LEFT PANEL */
+    .left-panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      bottom: -100px; right: -100px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--gold);
+      text-decoration: none;
+    }
+
+    .logo span { color: var(--cream); }
+
+    .panel-content { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 2rem 0; }
+
+    .panel-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid var(--border-gold);
+      color: var(--gold);
+      padding: 0.35rem 0.9rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      width: fit-content;
+    }
+
+    .panel-tag::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.5); }
+    }
+
+    .panel-heading {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 3.5vw, 3rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 1.2rem;
+    }
+
+    .panel-heading em { font-style: italic; color: var(--gold); }
+
+    .panel-desc {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.8;
+      max-width: 380px;
+      margin-bottom: 2.5rem;
+    }
+
+    /* HOW IT WORKS STEPS */
+    .steps { display: flex; flex-direction: column; gap: 1rem; }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+    }
+
+    .step-num {
+      background: var(--gold);
+      color: #000;
+      font-weight: 800;
+      font-size: 0.78rem;
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .step-info { display: flex; flex-direction: column; gap: 0.2rem; }
+    .step-title { font-size: 0.88rem; font-weight: 500; }
+    .step-desc { font-size: 0.75rem; color: var(--muted); }
+
+    .role-pills { display: flex; flex-direction: column; gap: 0.7rem; }
+
+    .role-pill {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.9rem 1.2rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: var(--cream);
+    }
+
+    .role-pill:hover, .role-pill.active {
+      border-color: var(--border-gold);
+      background: rgba(201,168,76,0.06);
+    }
+
+    .role-pill-icon { font-size: 1.4rem; min-width: 30px; text-align: center; }
+    .role-pill-info { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; }
+    .role-pill-name { font-size: 0.88rem; font-weight: 500; }
+    .role-pill-desc { font-size: 0.72rem; color: var(--muted); }
+    .role-pill-arrow { color: var(--muted); font-size: 0.9rem; transition: transform 0.3s, color 0.3s; }
+    .role-pill:hover .role-pill-arrow, .role-pill.active .role-pill-arrow { transform: translateX(4px); color: var(--gold); }
+
+    .panel-footer { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+    .panel-footer::before { content: '🔒'; font-size: 0.9rem; }
+
+    /* RIGHT PANEL */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
+      position: relative;
+    }
+
+    .top-back {
+      position: absolute;
+      top: 2rem; left: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .top-back:hover { color: var(--gold); }
+
+    .form-wrap { width: 100%; max-width: 400px; }
+
+    .form-header { margin-bottom: 2rem; }
+
+    .form-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-subtitle { font-size: 0.88rem; color: var(--muted); }
+    .form-subtitle span { color: var(--gold); }
+
+    /* ROLE TABS */
+    .role-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      background: var(--surface);
+      padding: 0.4rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .role-tab {
+      padding: 0.5rem 0.3rem;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    .role-tab .tab-icon { font-size: 1.1rem; }
+    .role-tab:hover { color: var(--cream); }
+    .role-tab.active { background: var(--card); color: var(--gold); border: 1px solid var(--border-gold); }
+
+    /* BADGE */
+    .role-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.82rem;
+      transition: all 0.3s;
+    }
+
+    .badge-green { background: rgba(76,175,128,0.08); border: 1px solid rgba(76,175,128,0.25); }
+    .badge-gold  { background: rgba(201,168,76,0.07); border: 1px solid var(--border-gold); }
+
+    .role-badge-icon { font-size: 1.2rem; }
+    .role-badge-text { color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+    .role-badge-text strong { color: var(--cream); }
+
+    /* TABLE PILL — shown in customer form */
+    .table-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(201,168,76,0.12);
+      border: 1px solid var(--border-gold);
+      color: var(--gold);
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    /* FIELDS */
+    .field { margin-bottom: 1.2rem; }
+
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      color: var(--cream);
+      font-size: 0.92rem;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
+    }
+
+    .field input::placeholder { color: #555; }
+
+    .field-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .field-row label { margin-bottom: 0; }
+    .forgot-link { font-size: 0.75rem; color: var(--gold); text-decoration: none; }
+
+    .pass-wrap { position: relative; }
+    .pass-wrap input { padding-right: 3rem; }
+
+    .pass-toggle {
+      position: absolute;
+      right: 1rem; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 1rem; padding: 0;
+      transition: color 0.2s;
+    }
+
+    .pass-toggle:hover { color: var(--gold); }
+
+    .btn-login {
+      width: 100%;
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 0.95rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 0.5rem;
+    }
+
+    .btn-login:hover {
+      background: var(--gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(201,168,76,0.3);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.5rem 0;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .back-link:hover { color: var(--gold); }
+
+    .hidden { display: none; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <a href="/" class="logo">Dine<span>Sync</span></a>
+
+    <div class="panel-content">
+      <div class="panel-tag">How It Works</div>
+      <h2 class="panel-heading">Simple for<br>everyone,<br><em>always.</em></h2>
+      <p class="panel-desc">Customers don't need accounts. Just scan the QR on your table and tell us your name.</p>
+
+      <!-- CUSTOMER STEPS (shown when customer tab selected) -->
+      <div id="left-customer" class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <div class="step-title">Scan QR on your table</div>
+            <div class="step-desc">Each table has a unique QR — your table number is detected automatically</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <div class="step-title">Enter your name</div>
+            <div class="step-desc">No account, no password, no email — just your name</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <div class="step-title">Browse, order & track</div>
+            <div class="step-desc">See the live menu, place orders and watch your food status in real time</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAFF ROLE PILLS (shown when staff tab selected) -->
+      <div id="left-staff" class="role-pills hidden">
+        <div class="role-pill" onclick="selectRole('kitchen', this)">
+          <div class="role-pill-icon">👨‍🍳</div>
+          <div class="role-pill-info">
+            <div class="role-pill-name">Kitchen Staff</div>
+            <div class="role-pill-desc">View & manage the FCFS order queue</div>
+          </div>
+          <div class="role-pill-arrow">→</div>
+        </div>
+        <div class="role-pill" onclick="selectRole('manager', this)">
+          <div class="role-pill-icon">📊</div>
+          <div class="role-pill-info">
+            <div class="role-pill-name">Manager</div>
+            <div class="role-pill-desc">Dashboard, revenue & table overview</div>
+          </div>
+          <div class="role-pill-arrow">→</div>
+        </div>
+        <div class="role-pill" onclick="selectRole('admin', this)">
+          <div class="role-pill-icon">🛡️</div>
+          <div class="role-pill-info">
+            <div class="role-pill-name">Admin</div>
+            <div class="role-pill-desc">Full system control & menu management</div>
+          </div>
+          <div class="role-pill-arrow">→</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-footer">Staff logins are encrypted and role-verified</div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <a href="/" class="top-back">← Back to Home</a>
+
+    <div class="form-wrap">
+      <div class="form-header">
+        <div class="form-title" id="form-title">Welcome!</div>
+        <div class="form-subtitle">Logging in as <span id="role-label">Customer</span></div>
+      </div>
+
+      <!-- ROLE TABS -->
+      <div class="role-tabs">
+        <button class="role-tab active" onclick="selectRoleTab('customer', this)">
+          <span class="tab-icon">🧑‍🍽️</span> Customer
+        </button>
+        <button class="role-tab" onclick="selectRoleTab('kitchen', this)">
+          <span class="tab-icon">👨‍🍳</span> Kitchen
+        </button>
+        <button class="role-tab" onclick="selectRoleTab('manager', this)">
+          <span class="tab-icon">📊</span> Manager
+        </button>
+        <button class="role-tab" onclick="selectRoleTab('admin', this)">
+          <span class="tab-icon">🛡️</span> Admin
+        </button>
+      </div>
+
+      <!-- BADGE -->
+      <div class="role-badge badge-green" id="role-badge">
+        <div class="role-badge-icon" id="badge-icon">🧑‍🍽️</div>
+        <div class="role-badge-text" id="badge-text">
+          <strong>No account needed!</strong> Your table is detected from the QR code automatically.
+        </div>
+      </div>
+
+      <form action="/login" method="POST" onsubmit="handleSubmit(event)">
+        <input type="hidden" name="role" id="role-input" value="customer"/>
+        <!-- Table number passed automatically from QR URL -->
+        <input type="hidden" name="table_number" id="table-number" value="1"/>
+
+        <!-- ✅ CUSTOMER FORM — name only -->
+        <div id="customer-form">
+          <div class="table-pill">
+            🪑 Table <span id="table-display">1</span> — detected from QR
+          </div>
+          <div class="field">
+            <label>Your Name</label>
+            <input type="text" name="customer_name" placeholder="e.g. Ravi Kumar" autocomplete="off" id="customer-name-input"/>
+          </div>
+        </div>
+
+        <!-- 🔒 STAFF FORM — email + password -->
+        <div id="staff-form" class="hidden">
+          <div class="field">
+            <label>Email Address</label>
+            <input type="email" name="email" placeholder="you@restaurant.com" autocomplete="email"/>
+          </div>
+          <div class="field">
+            <div class="field-row">
+              <label>Password</label>
+              <a href="#" class="forgot-link">Forgot password?</a>
+            </div>
+            <div class="pass-wrap">
+              <input type="password" name="password" id="password-field" placeholder="Enter your password" autocomplete="current-password"/>
+              <button type="button" class="pass-toggle" onclick="togglePassword()" id="pass-btn">👁️</button>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login" id="login-btn">Start Ordering →</button>
+      </form>
+
+      <div class="divider">or</div>
+      <a href="/" class="back-link">← Return to Home Page</a>
+    </div>
+  </div>
+
+  <script>
+    // Read table number from URL: /login?table=3
+    const params = new URLSearchParams(window.location.search);
+    const tableNum = params.get('table') || '1';
+    document.getElementById('table-number').value = tableNum;
+    document.getElementById('table-display').textContent = tableNum;
+
+    const roles = {
+      customer: { label: 'Customer', icon: '🧑‍🍽️', title: 'Welcome!',      badgeClass: 'badge-green', isStaff: false, pill: 0 },
+      kitchen:  { label: 'Kitchen Staff', icon: '👨‍🍳', title: 'Staff Login', badgeClass: 'badge-gold',  isStaff: true,  pill: 1 },
+      manager:  { label: 'Manager',  icon: '📊', title: 'Staff Login',        badgeClass: 'badge-gold',  isStaff: true,  pill: 2 },
+      admin:    { label: 'Admin',    icon: '🛡️', title: 'Admin Login',        badgeClass: 'badge-gold',  isStaff: true,  pill: 3 }
+    };
+
+    const badgeMessages = {
+      customer: '<strong>No account needed!</strong> Your table is detected from the QR code automatically.',
+      kitchen:  '<strong>Kitchen Staff</strong> — enter your credentials to access the order queue.',
+      manager:  '<strong>Manager</strong> — enter your credentials to access the dashboard.',
+      admin:    '<strong>Admin</strong> — restricted access. Enter your admin credentials.'
+    };
+
+    const btnLabels = {
+      customer: 'Start Ordering →',
+      kitchen:  'Sign In as Kitchen Staff →',
+      manager:  'Sign In as Manager →',
+      admin:    'Sign In as Admin →'
+    };
+
+    let currentRole = 'customer';
+
+    function updateUI(role) {
+      currentRole = role;
+      const r = roles[role];
+
+      document.getElementById('role-label').textContent = r.label;
+      document.getElementById('badge-icon').textContent = r.icon;
+      document.getElementById('badge-text').innerHTML = badgeMessages[role];
+      document.getElementById('role-input').value = role;
+      document.getElementById('login-btn').textContent = btnLabels[role];
+      document.getElementById('form-title').textContent = r.title;
+
+      const badge = document.getElementById('role-badge');
+      badge.className = 'role-badge ' + r.badgeClass;
+
+      // Switch form
+      if (r.isStaff) {
+        document.getElementById('customer-form').classList.add('hidden');
+        document.getElementById('staff-form').classList.remove('hidden');
+        document.getElementById('left-customer').classList.add('hidden');
+        document.getElementById('left-staff').classList.remove('hidden');
+      } else {
+        document.getElementById('staff-form').classList.add('hidden');
+        document.getElementById('customer-form').classList.remove('hidden');
+        document.getElementById('left-staff').classList.add('hidden');
+        document.getElementById('left-customer').classList.remove('hidden');
+      }
+    }
+
+    function selectRoleTab(role, el) {
+      document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      updateUI(role);
+    }
+
+    function selectRole(role, el) {
+      document.querySelectorAll('.role-pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      const tabs = document.querySelectorAll('.role-tab');
+      tabs.forEach(t => t.classList.remove('active'));
+      tabs[roles[role].pill].classList.add('active');
+      updateUI(role);
+    }
+
+    function togglePassword() {
+      const f = document.getElementById('password-field');
+      const b = document.getElementById('pass-btn');
+      f.type = f.type === 'password' ? 'text' : 'password';
+      b.textContent = f.type === 'password' ? '👁️' : '🙈';
+    }
+
+    function handleSubmit(e) {
+  const btn = document.getElementById('login-btn');
+  btn.textContent = 'Please wait...';
+  btn.style.opacity = '0.7';
+}
+  </script>
+
+</body>
+</html>

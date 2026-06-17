@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DineSync — Smart Table Ordering</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --card: #1e1e1e;
+      --gold: #c9a84c;
+      --gold-light: #e8c97a;
+      --cream: #f5f0e8;
+      --muted: #888;
+      --red: #e05c3a;
+      --green: #4caf80;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* NOISE TEXTURE OVERLAY */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 4rem;
+      background: rgba(13,13,13,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(201,168,76,0.12);
+    }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--gold);
+      letter-spacing: -0.5px;
+    }
+
+    .logo span { color: var(--cream); }
+
+    nav ul {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+
+    nav ul a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.3s;
+    }
+
+    nav ul a:hover { color: var(--gold); }
+
+    .nav-btn {
+      background: var(--gold);
+      color: #000;
+      padding: 0.6rem 1.4rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .nav-btn:hover { background: var(--gold-light); transform: translateY(-1px); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 8rem 4rem 4rem;
+      gap: 4rem;
+      position: relative;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--gold);
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.8rem;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-tag::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--gold);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.4); }
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(3rem, 5vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.05;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.7s 0.1s ease both;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .hero-desc {
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.8;
+      max-width: 480px;
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: #000;
+      padding: 0.85rem 2rem;
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: var(--gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(201,168,76,0.25);
+    }
+
+    .btn-ghost {
+      color: var(--cream);
+      padding: 0.85rem 2rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      transition: all 0.3s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* HERO VISUAL */
+    .hero-visual {
+      animation: fadeUp 0.8s 0.2s ease both;
+      position: relative;
+    }
+
+    .mock-screen {
+      background: var(--surface);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .mock-bar {
+      background: var(--card);
+      padding: 0.8rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mock-dot:nth-child(1) { background: var(--red); }
+    .mock-dot:nth-child(2) { background: var(--gold); }
+    .mock-dot:nth-child(3) { background: var(--green); }
+
+    .mock-url {
+      background: rgba(255,255,255,0.06);
+      padding: 0.3rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: 0.5rem;
+    }
+
+    .mock-body { padding: 1.5rem; }
+
+    .mock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2rem;
+    }
+
+    .mock-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: var(--gold);
+    }
+
+    .mock-table-badge {
+      background: rgba(201,168,76,0.12);
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--gold);
+      padding: 0.25rem 0.7rem;
+      border-radius: 100px;
+      font-size: 0.72rem;
+    }
+
+    .mock-categories {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .mock-cat {
+      padding: 0.3rem 0.8rem;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+    }
+
+    .mock-cat.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+      font-weight: 600;
+    }
+
+    .mock-items { display: flex; flex-direction: column; gap: 0.7rem; }
+
+    .mock-item {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: border-color 0.3s;
+    }
+
+    .mock-item:hover { border-color: rgba(201,168,76,0.3); }
+
+    .mock-item-info { display: flex; flex-direction: column; gap: 0.2rem; }
+    .mock-item-name { font-size: 0.82rem; font-weight: 500; }
+    .mock-item-meta { font-size: 0.7rem; color: var(--muted); }
+
+    .mock-item-right { display: flex; align-items: center; gap: 0.8rem; }
+    .mock-price { font-size: 0.82rem; color: var(--gold); font-weight: 600; }
+
+    .mock-add {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      transition: transform 0.2s;
+    }
+
+    .mock-add:hover { transform: scale(1.1); }
+
+    .mock-wait {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.68rem;
+      color: var(--green);
+    }
+
+    .mock-wait-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    .mock-unavail { color: var(--red); font-size: 0.68rem; }
+
+    /* FLOATING BADGE */
+    .float-badge {
+      position: absolute;
+      bottom: -20px; left: -30px;
+      background: var(--card);
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 12px;
+      padding: 0.8rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .float-icon { font-size: 1.5rem; }
+    .float-text { font-size: 0.75rem; }
+    .float-text strong { color: var(--gold); display: block; font-size: 0.85rem; }
+
+    /* STATS */
+    .stats {
+      display: flex;
+      gap: 2rem;
+      padding: 2rem 4rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      animation: fadeUp 0.8s 0.4s ease both;
+    }
+
+    .stat { display: flex; flex-direction: column; gap: 0.2rem; }
+    .stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .stat-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* FEATURES */
+    .features {
+      padding: 6rem 4rem;
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 3.5vw, 3rem);
+      font-weight: 800;
+      margin-bottom: 3rem;
+      max-width: 500px;
+      line-height: 1.2;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 2rem;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feature-card:hover { border-color: rgba(201,168,76,0.2); transform: translateY(-4px); }
+    .feature-card:hover::before { opacity: 1; }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .feature-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.7; }
+
+    /* ROLES */
+    .roles {
+      padding: 4rem;
+      background: var(--surface);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-top: 3rem;
+    }
+
+    .role-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.06);
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .role-card:hover { border-color: rgba(201,168,76,0.25); transform: translateY(-3px); }
+
+    .role-emoji { font-size: 2.5rem; margin-bottom: 0.8rem; }
+    .role-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--gold);
+      margin-bottom: 0.5rem;
+    }
+    .role-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+
+    /* CTA */
+    .cta {
+      padding: 8rem 4rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .cta::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px; height: 300px;
+      background: radial-gradient(ellipse, rgba(201,168,76,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 4vw, 3.5rem);
+      font-weight: 900;
+      margin-bottom: 1.2rem;
+    }
+
+    .cta p { color: var(--muted); font-size: 1rem; margin-bottom: 2.5rem; }
+
+    /* LOGIN CARDS */
+    .login-cards {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 3rem;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 1.2rem 1.8rem;
+      text-decoration: none;
+      color: var(--cream);
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 0.88rem;
+      transition: all 0.3s;
+      min-width: 160px;
+    }
+
+    .login-card:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-3px); }
+    .login-card-icon { font-size: 1.4rem; }
+
+    /* FOOTER */
+    footer {
+      padding: 2rem 4rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 900px) {
+      nav { padding: 1rem 1.5rem; }
+      nav ul { display: none; }
+      .hero { grid-template-columns: 1fr; padding: 7rem 1.5rem 3rem; }
+      .hero-visual { display: none; }
+      .stats { padding: 1.5rem; flex-wrap: wrap; gap: 1.5rem; }
+      .features { padding: 4rem 1.5rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .roles { padding: 4rem 1.5rem; }
+      .roles-grid { grid-template-columns: repeat(2, 1fr); }
+      .cta { padding: 4rem 1.5rem; }
+      footer { padding: 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">Dine<span>Sync</span></div>
+    <ul>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#roles">Roles</a></li>
+      <li><a href="#login">Login</a></li>
+    </ul>
+    <a href="/login" class="nav-btn">Get Started</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-tag">Smart Restaurant Ordering</div>
+      <h1>Order Smarter.<br><em>Serve Faster.</em><br>No Chaos.</h1>
+      <p class="hero-desc">
+        A table-side ordering system that gives every customer a fair, seamless experience — from browsing the menu to tracking their food in real time.
+      </p>
+      <div class="hero-actions">
+        <a href="#login" class="btn-primary">Enter the System</a>
+        <a href="#features" class="btn-ghost">See How It Works</a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="mock-screen">
+        <div class="mock-bar">
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <div class="mock-url">localhost:5000/table/3</div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-header">
+            <div class="mock-title">Tonight's Menu</div>
+            <div class="mock-table-badge">Table 3</div>
+          </div>
+          <div class="mock-categories">
+            <div class="mock-cat active">All</div>
+            <div class="mock-cat">Starters</div>
+            <div class="mock-cat">Main Course</div>
+            <div class="mock-cat">Drinks</div>
+          </div>
+          <div class="mock-items">
+            <div class="mock-item">
+              <div class="mock-item-info">
+                <div class="mock-item-name">🍛 Chicken Biryani</div>
+                <div class="mock-wait"><div class="mock-wait-dot"></div> Ready in ~12 min</div>
+              </div>
+              <div class="mock-item-right">
+                <div class="mock-price">₹220</div>
+                <button class="mock-add">+</button>
+              </div>
+            </div>
+            <div class="mock-item">
+              <div class="mock-item-info">
+                <div class="mock-item-name">🥗 Paneer Butter Masala</div>
+                <div class="mock-wait"><div class="mock-wait-dot"></div> Ready in ~8 min</div>
+              </div>
+              <div class="mock-item-right">
+                <div class="mock-price">₹180</div>
+                <button class="mock-add">+</button>
+              </div>
+            </div>
+            <div class="mock-item" style="opacity:0.5;">
+              <div class="mock-item-info">
+                <div class="mock-item-name">🍢 Seekh Kebab</div>
+                <div class="mock-unavail">Currently unavailable</div>
+              </div>
+              <div class="mock-item-right">
+                <div class="mock-price">₹150</div>
+              </div>
+            </div>
+            <div class="mock-item">
+              <div class="mock-item-info">
+                <div class="mock-item-name">🥤 Mango Lassi</div>
+                <div class="mock-wait"><div class="mock-wait-dot"></div> Ready in ~3 min</div>
+              </div>
+              <div class="mock-item-right">
+                <div class="mock-price">₹80</div>
+                <button class="mock-add">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="float-badge">
+        <div class="float-icon">🔔</div>
+        <div class="float-text">
+          <strong>Order #47 Ready!</strong>
+          Table 3 — Biryani & Lassi
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label">User Roles</div></div>
+    <div class="stat"><div class="stat-num">FCFS</div><div class="stat-label">Fair Queue System</div></div>
+    <div class="stat"><div class="stat-num">AI</div><div class="stat-label">Powered Chatbot</div></div>
+    <div class="stat"><div class="stat-num">Live</div><div class="stat-label">Order Tracking</div></div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="section-label">What We Solve</div>
+    <h2 class="section-title">Every pain point, addressed.</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <h3>Live Menu at Every Table</h3>
+        <p>Customers browse the full menu with prices, photos, and real-time availability — no guessing, no waiting for a waiter.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⏱️</div>
+        <h3>First Come, First Served</h3>
+        <p>Orders enter a strict time-based queue. No more late customers jumping ahead — every table gets fair treatment.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📡</div>
+        <h3>Real-time Order Tracking</h3>
+        <p>Customers watch their order move from Placed → Preparing → Ready live on their table screen. No anxiety, no confusion.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Food Assistant</h3>
+        <p>Ask the chatbot anything — "What's spicy?", "Best dish today?" — and get instant smart recommendations powered by AI.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>Call Waiter Button</h3>
+        <p>Not comfortable with screens? One tap calls a waiter instantly. They can even place the order on the customer's behalf.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Role-Based Access</h3>
+        <p>Admin, Kitchen, Manager and Customer — each person sees only what they need. Secure, bcrypt-protected login for every role.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROLES -->
+  <section class="roles" id="roles">
+    <div class="section-label">Who Uses It</div>
+    <h2 class="section-title">Built for everyone in the restaurant.</h2>
+    <div class="roles-grid">
+      <div class="role-card">
+        <div class="role-emoji">🧑‍🍽️</div>
+        <div class="role-name">Customer</div>
+        <div class="role-desc">Browse menu, place orders, track status, and chat with AI — all from the table.</div>
+      </div>
+      <div class="role-card">
+        <div class="role-emoji">👨‍🍳</div>
+        <div class="role-name">Kitchen Staff</div>
+        <div class="role-desc">See incoming orders in real-time queue, update status, manage prep flow efficiently.</div>
+      </div>
+      <div class="role-card">
+        <div class="role-emoji">📊</div>
+        <div class="role-name">Manager</div>
+        <div class="role-desc">Monitor all tables, track revenue, spot delayed orders and view daily reports.</div>
+      </div>
+      <div class="role-card">
+        <div class="role-emoji">🛡️</div>
+        <div class="role-name">Admin</div>
+        <div class="role-desc">Full control — add/edit/delete dishes, manage staff accounts, set availability instantly.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA / LOGIN -->
+  <section class="cta" id="login">
+    <div class="section-label">Access the System</div>
+    <h2>Ready to take your order?</h2>
+    <p>Choose your role and log in to get started.</p>
+    <a href="/login" class="btn-primary">Login to Dashboard →</a>
+
+    <div class="login-cards">
+      <a href="/login" class="login-card">
+        <span class="login-card-icon">🧑‍🍽️</span>
+        <span>Customer View<br><small style="color:var(--muted)">Table 1</small></span>
+      </a>
+      <a href="/login" class="login-card">
+        <span class="login-card-icon">👨‍🍳</span>
+        <span>Kitchen Panel<br><small style="color:var(--muted)">Staff Login</small></span>
+      </a>
+      <a href="/login" class="login-card">
+        <span class="login-card-icon">📊</span>
+        <span>Manager View<br><small style="color:var(--muted)">Reports & Tables</small></span>
+      </a>
+      <a href="/login" class="login-card">
+        <span class="login-card-icon">🛡️</span>
+        <span>Admin Panel<br><small style="color:var(--muted)">Full Control</small></span>
+      </a>
+    </div>
+  </section>
+  <footer>
+    <div>HAVE PATIENCE FOR A HEALTHY TREAT</div>
+  </footer>
+
+</body>
+</html>
